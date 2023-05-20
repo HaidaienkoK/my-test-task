@@ -1,129 +1,114 @@
-import './css/common.css';
-import LoadMoreBtn from './components/LoadMoreBtn.js';
-import AxiosRequest from './js/axiosRequest';
-import { Notify } from 'notiflix/build/notiflix-notify-aio'; //для сообщений
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
+import axios from 'axios';
 
-const form = document.getElementById('search-form');
-const cardsContainer = document.querySelector('.gallery');
-const loadMoreBtn = new LoadMoreBtn({
-  selector: '.load-more',
-  isHidden: true,
-});
+const cardsContainer = document.querySelector('.cards');
+var cardsData = '';
+// const dataCardsOb = {
+//   user: '',
+//   tweets: '',
+//   folowers: '',
+//   avatar: '',
+//   id: '',
+// };
+// console.log(cardEL)
 
-form.addEventListener('submit', onSearch);
-loadMoreBtn.button.addEventListener('click', onLoadMore);
-
-const axiosRequest = new AxiosRequest();
-
-let lightbox = new SimpleLightbox('.photo-card a', {
-  captions: true,
-  captionsData: 'alt',
-  captionDelay: 250,
-});
-
-async function onSearch(e) {
-  e.preventDefault();
-  axiosRequest.query = e.currentTarget.searchQuery.value.trim();
-  axiosRequest.resetPage();
-  clearCards();
-
-  if (axiosRequest.query === '') {
-    loadMoreBtn.hide();
-    alert('No data');
-  } else {
-    loadMoreBtn.show();
-    loadMoreBtn.disable();
-    const response = await axiosRequest.fetchElement();
-    Notify.success(`Hooray! We found ${axiosRequest.totalHits} images.`);
-    onCurrentHits(response);
-  }
+function fetchData() {
+  console.log('dsfkjajfhashfjkhads');
+  axios
+    .get('https://6457709a1a4c152cf981ff55.mockapi.io/DDsd')
+    .then(function (response) {
+      // Обработка успешного ответа от сервера
+      console.log(response.data);
+      cardsData = response.data;
+      var jsonString = JSON.stringify(cardsData);
+      localStorage.setItem('Data', jsonString);
+      renderCards(cardsData);
+      const buttonElAll = document.querySelectorAll('.button');
+      console.log(buttonElAll);
+      buttonElAll.forEach(function (item) {
+        /* Назначаем каждой кнопке обработчик клика */
+        item.addEventListener('click', clickItem);
+      });
+    })
+    .catch(function (error) {
+      // Обработка ошибки
+      console.log(error);
+    });
 }
 
-function renderCard(cards) {
-  if (cards.length === 0) {
-    onFitchError();
-  } else {
-    const markup = cards
-      .map(
-        ({
-          largeImageURL,
-          webformatURL,
-          tags,
-          likes,
-          views,
-          comments,
-          downloads,
-        }) =>
-          `<div class="photo-card">
-            <a class="gallery__item" href="${largeImageURL}">
-              <img class="gallery__image" src="${webformatURL}" alt="${tags}" loading="lazy" />
-            </a>
-            <div class="info">
-              <p class="info-item">
-                <b>Likes</b><br>${likes}
-              </p>
-              <p class="info-item">
-                <b>Views</b><br>${views}
-              </p>
-              <p class="info-item">
-                <b>Comments</b><br>${comments}
-              </p>
-              <p class="info-item">
-                <b>Downloads</b><br>${downloads}
-              </p>
-            </div>
-          </div>
+function renderCards(cardsData) {
+  cardsContainer.innerHTML = '<ul class="cards"></ul>';
+  const markup = cardsData
+    .map(
+      cardData =>
+        `<li class="card">
+        <div class="box">
+
+        <div class="logo"></div>
+          <div class="top_img"></div>
+          <div class="line"></div>
+          <img class="avatar" src='${cardData.avatar}' alt="">
+          <p class="tweets">${cardData.tweets} TWEETS</p>
+          <p class="followers"  id=${
+            cardData.id + 'p'
+          }>${cardData.followers.toLocaleString('en-EN')} FOLLOWERS</p>
+          ${
+            cardData.active
+              ? `<button class="button active" id=${cardData.id}>FOLLOWING</button>}`
+              : `<button class="button" id=${cardData.id}>FOLLOW</button>`
+          }
+          
+        </div>
+      </li>
           `
-      )
-      .join('');
-
-    cardsContainer.insertAdjacentHTML('beforeend', markup);
-  }
-  loadMoreBtn.enable();
+    )
+    .join('');
+  cardsContainer.insertAdjacentHTML('afterbegin', markup);
 }
 
-async function onLoadMore() {
-  loadMoreBtn.disable();
-  const response = await axiosRequest.fetchElement();
-  onCurrentHits(response);
+const clickItem = function (e) {
+  var clickedButton = e.target;
+  console.log((e.target.innerHTML = 'FOLLOWING'));
 
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
+  var followingEl = document.getElementById(e.target.id + 'p');
 
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
-}
-
-function onCurrentHits(response) {
-  let currentHits = response.length;
-  if (currentHits >= 40) {
-    loadMoreBtn.show();
+  // clickedButton.
+  var cardOnClick = cardsData[e.target.id - 1];
+  if (clickedButton.classList.contains('active')) {
+    cardOnClick.active = false;
+    e.target.innerHTML = 'FOLLOW';
+    cardOnClick.followers = cardOnClick.followers - 1;
   } else {
-    loadMoreBtn.hide();
-    Notify.failure(
-      "We're sorry, but you've reached the end of search results."
-    );
+    cardOnClick.active = true;
+    e.target.innerHTML = 'FOLLOWING';
+    cardOnClick.followers = cardOnClick.followers + 1;
   }
-  renderCard(response);
-  lightbox.refresh();
-}
+  clickedButton.classList.toggle('active');
+  followingEl.textContent =
+    cardOnClick.followers.toLocaleString('en-EN') + ' FOLLOWERS';
+  localStorage.setItem('Data', JSON.stringify(cardsData));
+};
 
-//Отчистить вывод
-function clearCards() {
-  cardsContainer.innerHTML = '';
-}
+// Вызов функции при загрузке страницы
+window.onload = setData;
 
-function onFitchError() {
-  loadMoreBtn.hide();
-  Notify.failure(
-    'Sorry, there are no images matching your search query. Please try again.',
-    {
-      showOnlyTheLastOne: true,
-    }
-  );
+var storageData = localStorage.getItem('Data');
+
+function setData() {
+  if (storageData) {
+    // Преобразование данных в объект JavaScript
+    cardsData = JSON.parse(storageData);
+    renderCards(cardsData);
+    const buttonElAll = document.querySelectorAll('.button');
+    console.log(buttonElAll);
+    buttonElAll.forEach(function (item) {
+      /* Назначаем каждой кнопке обработчик клика */
+      item.addEventListener('click', clickItem);
+    });
+
+    // Использование объекта
+    console.log(cardsData);
+  } else {
+    console.log('Данные в Local Storage отсутствуют.');
+    fetchData();
+  }
 }
