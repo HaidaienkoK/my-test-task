@@ -4,7 +4,6 @@ import LoadMoreBtn from './components/LoadMoreBtn.js';
 const cardsContainer = document.querySelector('.cards');
 let storageData = localStorage.getItem('Data');
 let cardsData = '';
-let i = 0;
 let firstCardPage = 0;
 let endCardPages = 2;
 const loadMoreBtn = new LoadMoreBtn({
@@ -37,6 +36,7 @@ function onLoadMore() {
 }
 
 function renderCards(cardsData) {
+  let i = 0;
   cardsContainer.innerHTML = '<ul class="cards"></ul>';
   if (cardsData.length <= endCardPages) {
     endCardPages = cardsData.length - 1;
