@@ -4,6 +4,7 @@ import LoadMoreBtn from './components/LoadMoreBtn.js';
 const cardsContainer = document.querySelector('.cards');
 let storageData = localStorage.getItem('Data');
 let cardsData = '';
+let i = 0;
 let firstCardPage = 0;
 let endCardPages = 2;
 const loadMoreBtn = new LoadMoreBtn({
